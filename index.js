@@ -45,8 +45,6 @@ app.post("/api/purchases", async (req,res) => {
 })
 
 app.put("/api/purchases/:id", async (req, res) => {
-
-    console.log("BODY:", req.body);
     const {id} = req.params;
     const {user_id,status, details} = req.body || {};
 
@@ -130,7 +128,34 @@ app.put("/api/purchases/:id", async (req, res) => {
     }
 })
 
+app.delete("/api/purchases/:id", async (req,res) => {
+    const {id} = req.params
 
+    const [purchaseResult] = await connection.query("SELECT * FROM purchases WHERE id = ?", 
+        [id]
+    )
+
+    if(purchaseResult.length == 0){
+        res.status(404).json({message: "No se encontro lo compra"})
+    }
+
+    try{
+        await connection.beginTransaction();
+
+        await connection.query("DELETE FROM purchase_details WHERE purchase_id = ?",
+            [id])
+        
+        await connection.query("DELETE FROM purchases WHERE id = ?",
+            [id])
+        
+        await connection.commit();
+
+        res.json({message: "compra borrada exitosamente"});
+    } catch (err){
+        await connection.rollback();
+        res.status(500).json({error: "No se pudo borrar la compra", detalle: err.message})
+    }
+})
 async function validarInformacion(details, connection) {
   let total = 0;
 
