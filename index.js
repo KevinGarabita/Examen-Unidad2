@@ -156,6 +156,58 @@ app.delete("/api/purchases/:id", async (req,res) => {
         res.status(500).json({error: "No se pudo borrar la compra", detalle: err.message})
     }
 })
+
+app.get("/api/purchases", async (req,res) => {
+    const [rows] = await connection.query(`
+        select 
+            p.id AS purchase_id, 
+            u.name AS user, 
+            p.total,
+            p.status,
+            p.purchase_date, 
+            pd.id AS detail_id, 
+            pr.name AS product, 
+            pd.quantity, 
+            pd.price, 
+            pd.subtotal  
+        from purchases p
+        inner join users u on u.id = p.user_id 
+        inner join purchase_details pd on pd.purchase_id = p.id
+        inner join products pr on pr.id = pd.product_id`);
+    
+    // 2️⃣ Agrupar los detalles por compra
+    const purchasesMap = new Map();
+
+    rows.forEach((row) => {
+      // Si la compra no existe en el mapa, la creamos
+      if (!purchasesMap.has(row.purchase_id)) {
+        purchasesMap.set(row.purchase_id, {
+          id: row.purchase_id,
+          user: row.user,
+          total: row.total,
+          status: row.status,
+          purchase_date: row.purchase_date,
+          details: [],
+        });
+      }
+
+      // Si hay un detalle (puede ser null si no tiene), lo agregamos
+      if (row.detail_id) {
+        purchasesMap.get(row.purchase_id).details.push({
+          id: row.detail_id,
+          product: row.product,
+          quantity: row.quantity,
+          price: row.price,
+          subtotal: row.subtotal,
+        });
+      }
+    });
+
+    // 3️⃣ Convertir Map a array
+    const result = Array.from(purchasesMap.values());
+    console.log(result);
+    res.json(result);
+});
 async function validarInformacion(details, connection) {
   let total = 0;
 
