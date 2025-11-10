@@ -174,6 +174,35 @@ app.get("/api/purchases", async (req,res) => {
         inner join users u on u.id = p.user_id 
         inner join purchase_details pd on pd.purchase_id = p.id
         inner join products pr on pr.id = pd.product_id`);
+    
+    const purchasesMap = new Map();
+
+    rows.forEach((row) => {
+      if (!purchasesMap.has(row.purchase_id)) {
+        purchasesMap.set(row.purchase_id, {
+          id: row.purchase_id,
+          user: row.user,
+          total: row.total,
+          status: row.status,
+          purchase_date: row.purchase_date,
+          details: [],
+        });
+      }
+
+      if (row.detail_id) {
+        purchasesMap.get(row.purchase_id).details.push({
+          id: row.detail_id,
+          product: row.product,
+          quantity: row.quantity,
+          price: row.price,
+          subtotal: row.subtotal,
+        });
+      }
+    });
+
+    const result = Array.from(purchasesMap.values());
+    console.log(result);
+    res.json(result);
 });
 
 async function validarInformacion(details, connection) {
