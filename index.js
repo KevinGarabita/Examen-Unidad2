@@ -156,6 +156,26 @@ app.delete("/api/purchases/:id", async (req,res) => {
         res.status(500).json({error: "No se pudo borrar la compra", detalle: err.message})
     }
 })
+
+app.get("/api/purchases", async (req,res) => {
+    const [rows] = await connection.query(`
+        select 
+            p.id AS purchase_id, 
+            u.name AS user, 
+            p.total,
+            p.status,
+            p.purchase_date, 
+            pd.id AS detail_id, 
+            pr.name AS product, 
+            pd.quantity, 
+            pd.price, 
+            pd.subtotal  
+        from purchases p
+        inner join users u on u.id = p.user_id 
+        inner join purchase_details pd on pd.purchase_id = p.id
+        inner join products pr on pr.id = pd.product_id`);
+});
+
 async function validarInformacion(details, connection) {
   let total = 0;
 
